@@ -60,17 +60,16 @@ class Rook(Piece):
         if x1 == x2: # vertical direction
             step = 1 if y1 < y2 else -1
             for y in range(y1+step, y2, step):
-                if board[y][x1] is not None and board[y][x1].color == self.color:
+                if board[y][x1] is not None:
                     print("Error: path is blocked")
                     return False
         elif y1 == y2: #horizontal direction
             step = 1 if x1 < x2 else -1
             for x in range(x1+step, x2, step):
-                if board[y1][x] is not None and board[y1][x].color == self.color:
+                if board[y1][x] is not None:
                     print("Error: path is blocked")
                     return False
         else:
-            print("Error. Movement in straight line is required")
             return False
         
         if board[y2][x2] is None or board[y2][x2].color != self.color:
@@ -88,38 +87,35 @@ class Pawn(Piece):
         y1, x1 = from_pos
         y2, x2 = to_pos
 
-        direction = -1 if self.color == "white" else 1  # White moves up (-1), Black moves down (+1)
+        step = -1 if self.color == "white" else 1  
 
-        # Basic one step forward move
-        if x2 == x1 and y2 == y1 + direction:
+        # One step forward
+        if x2 == x1 and y2 == y1 + step:
             if board[y2][x2] is None:
                 board[y2][x2] = board[y1][x1]
                 board[y1][x1] = None
                 return True
             else:
-                print("Error: Pawn cannot move forward to an occupied square")
                 return False
 
-        # Two steps forward from starting position
+        # Two steps forward 
         start_row = 6 if self.color == "white" else 1
-        if x2 == x1 and y1 == start_row and y2 == y1 + 2*direction:
-            if board[y1 + direction][x1] is None and board[y2][x2] is None:
+        if x2 == x1 and y1 == start_row and y2 == y1 + 2*step:
+            if board[y1 + step][x1] is None and board[y2][x2] is None:
                 board[y2][x2] = board[y1][x1]
                 board[y1][x1] = None
                 return True
             else:
-                print("Error: Path blocked for pawn double move")
                 return False
 
-        # Capture diagonally
-        if abs(x2 - x1) == 1 and y2 == y1 + direction:
+        # Eat dioganally
+        if abs(x2 - x1) == 1 and y2 == y1 + step:
             target = board[y2][x2]
             if target is not None and target.color != self.color:
                 board[y2][x2] = board[y1][x1]
                 board[y1][x1] = None
                 return True
             else:
-                print("Error: No opponent piece to capture")
                 return False
 
         print("Error: Invalid pawn move")
@@ -134,23 +130,48 @@ class King(Piece):
         y1, x1 = from_pos
         y2, x2 = to_pos
 
-        dx = abs(x2 - x1)
-        dy = abs(y2 - y1)
-
-        # King can move 1 square in any direction
-        if dx <= 1 and dy <= 1:
-            target_piece = board[y2][x2]
-            if target_piece is None or target_piece.color != self.color:
+        if abs(x2 - x1) <= 1 and abs(y2 - y1) <= 1:
+            if board[y2][x2] is None or board[y2][x2].color != self.color:
                 board[y2][x2] = board[y1][x1]
                 board[y1][x1] = None
                 return True
             else:
-                print("Error: Cannot capture own piece")
                 return False
         else:
             print("Error: King can only move 1 square in any direction")
             return False
 
+class Bishop(Piece):
+    def symbol(self):
+        return "wB" if self.color == "white" else "bB"
+    
+    def move(self, board, from_pos, to_pos):
+        y1, x1 = from_pos
+        y2, x2 = to_pos
+
+        if abs(x2 - x1) != abs(y2 - y1):
+            print("Error: Bishop must move diagonally")
+            return False
+
+        step_y = 1 if y2 > y1 else -1
+        step_x = 1 if x2 > x1 else -1
+
+        y, x = y1 + step_y, x1 + step_x
+        while y!= y2 and x != x2:
+            if board[y][x] is not None:
+                print("Error: path is blocked")
+                return False
+            y += step_y
+            x += step_x
+
+        target = board[y2][x2]
+        if target is None or target.color != self.color:
+            board[y2][x2] = board[y1][x1]
+            board[y1][x1] = None
+            return True
+        else:
+            print("Error: Cannot capture own piece")
+            return False
 
 class Queen(Piece):
     def symbol(self):
@@ -160,22 +181,19 @@ class Queen(Piece):
         y1, x1 = from_pos
         y2, x2 = to_pos
 
-        dx = abs(x2 - x1)
-        dy = abs(y2 - y1)
-
-        if x1 == x2:  # vertical
+        if x1 == x2: # vertical 
             step = 1 if y1 < y2 else -1
-            for y in range(y1 + step, y2, step):
-                if board[y][x1] is not None:
+            for y in range(y1+step, y2, step):
+                if board[y][x1] is not None and board[y][x1].color == self.color:
                     print("Error: path is blocked")
                     return False
-        elif y1 == y2:  # horizontal
+        elif y1 == y2: #horizontal 
             step = 1 if x1 < x2 else -1
-            for x in range(x1 + step, x2, step):
-                if board[y1][x] is not None:
+            for x in range(x1+step, x2, step):
+                if board[y1][x] is not None and board[y1][x].color == self.color:
                     print("Error: path is blocked")
                     return False
-        elif dx == dy:  # diagonal
+        elif abs(x2 - x1) == abs(y2 - y1):  # diagonal
             step_y = 1 if y2 > y1 else -1
             step_x = 1 if x2 > x1 else -1
             y, x = y1 + step_y, x1 + step_x
@@ -198,40 +216,6 @@ class Queen(Piece):
             print("Error: Cannot capture own piece")
             return False
 
-class Bishop(Piece):
-    def symbol(self):
-        return "wB" if self.color == "white" else "bB"
-    
-    def move(self, board, from_pos, to_pos):
-        y1, x1 = from_pos
-        y2, x2 = to_pos
-
-        dx = abs(x2 - x1)
-        dy = abs(y2 - y1)
-
-        if dx != dy:
-            print("Error: Bishop must move diagonally")
-            return False
-
-        step_y = 1 if y2 > y1 else -1
-        step_x = 1 if x2 > x1 else -1
-
-        y, x = y1 + step_y, x1 + step_x
-        while y != y2 and x != x2:
-            if board[y][x] is not None:
-                print("Error: path is blocked")
-                return False
-            y += step_y
-            x += step_x
-
-        target = board[y2][x2]
-        if target is None or target.color != self.color:
-            board[y2][x2] = board[y1][x1]
-            board[y1][x1] = None
-            return True
-        else:
-            print("Error: Cannot capture own piece")
-            return False
 
 
 class Knight(Piece):

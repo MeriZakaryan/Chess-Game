@@ -184,13 +184,13 @@ class Queen(Piece):
         if x1 == x2: # vertical 
             step = 1 if y1 < y2 else -1
             for y in range(y1+step, y2, step):
-                if board[y][x1] is not None and board[y][x1].color == self.color:
+                if board[y][x1] is not None:
                     print("Error: path is blocked")
                     return False
         elif y1 == y2: #horizontal 
             step = 1 if x1 < x2 else -1
             for x in range(x1+step, x2, step):
-                if board[y1][x] is not None and board[y1][x].color == self.color:
+                if board[y1][x] is not None:
                     print("Error: path is blocked")
                     return False
         elif abs(x2 - x1) == abs(y2 - y1):  # diagonal
@@ -226,10 +226,7 @@ class Knight(Piece):
         y1, x1 = from_pos
         y2, x2 = to_pos
 
-        dx = abs(x2 - x1)
-        dy = abs(y2 - y1)
-
-        if (dx == 2 and dy == 1) or (dx == 1 and dy == 2):
+        if (abs(x2 - x1) == 2 and abs(y2 - y1) == 1) or (abs(x2 - x1) == 1 and abs(y2 - y1) == 2):
             target = board[y2][x2]
             if target is None or target.color != self.color:
                 board[y2][x2] = board[y1][x1]

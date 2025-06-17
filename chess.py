@@ -54,6 +54,47 @@ class Board:
             print()
         print("  a  b  c  d  e  f  g  h")
 
+class CheckMate:
+    def __init__(self, board):
+        self.board = board.board
+    
+    def find_king(self, color):
+        for y in range(8):
+            for x in range(8):
+                piece = self.board[y][x]
+                if isinstance(piece, King) and piece.color == color:
+                    return (y, x)
+        return None
+    
+    def is_in_check(self, color):
+        king_pos = self.find_king(color)
+        if king_pos is None:
+            return False
+        opponent_color = "black" if color == "white" else "white"
+        for y in range(8):
+            for x in range(8):
+                piece = self.board[y][x]
+                if piece is not None and piece.color == opponent_color:
+                    if self.can_piece_attack(piece, king_pos):
+                        return True
+        return False
+
+    def can_piece_attack(self, piece, king_pos):
+        for y in range(8):  # Iterate over all rows again
+            for x in range(8):  # Iterate over all columns
+                if piece and piece.color != self.board[king_pos[0]][king_pos[1]].color:
+                    # Save original pieces for undoing move later
+                    original_target = self.board[king_pos[0]][king_pos[1]]  # Piece at king's square
+                    original_piece = self.board[y][x]  # The attacking piece itself
+
+                    if piece.move(self.board, (y, x), king_pos):
+                        # Undo the move to keep self.board unchanged
+                        self.board[y][x] = original_piece
+                        self.board[king_pos[0]][king_pos[1]] = original_target
+                        return True  # King is under attack (in check)
+        return False
+    
+    
 
 class Rook(Piece):
     def __init__(self, color):
@@ -311,6 +352,7 @@ def is_valid_position(pos):
 def main():
     board = Board()
     board.setup()
+    rules = CheckMate(board)
     turn = "white" 
 
     print("Welcome to Chess!")
@@ -353,6 +395,8 @@ def main():
 
         if piece.move(board.board, from_pos, to_pos):
             turn = "black" if turn == "white" else "white"
+            if rules.is_in_check(turn):
+                print(f"Warning! {turn.capitalize()} is in check!")
         else:
             print("Invalid move. Try again.")
 

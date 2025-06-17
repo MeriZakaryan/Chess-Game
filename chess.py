@@ -4,13 +4,20 @@ class Piece:
     def __init__(self, color):
         self.color = color
     
-    def move(self, board, from_pos, to_pos): # from_pos = (x1, y1) is tuple then to_pos = (x2, y2)
-        # x is like OX (a, b, c, d, e, f, g, h)
-        # y is like OY (1, 2, 3, 4, 5, 6, 7, 8)
-        x1, y1 = from_pos
-        x2, y2 = to_pos
-        board[y2][x2] = board[y1][x1]
-        board[y1][x1] = None
+    # from_pos = (x1, y1) is tuple then to_pos = (x2, y2)
+    # x is like OX (a, b, c, d, e, f, g, h)
+    # y is like OY (1, 2, 3, 4, 5, 6, 7, 8) 
+    def capture_move(self, board, from_pos, to_pos):
+        y1, x1 = from_pos
+        y2, x2 = to_pos
+        target = board[y2][x2]
+        if target is None or target.color != self.color:
+            board[y2][x2] = board[y1][x1]
+            board[y1][x1] = None
+            return True
+        else:
+            print("Error: Cannot capture own piece")
+            return False
 
 class Board:
     def __init__(self):
@@ -72,13 +79,8 @@ class Rook(Piece):
             print("Error: Rook must move horizontally or vertically")
             return False
         
-        if board[y2][x2] is None or board[y2][x2].color != self.color:
-            board[y2][x2] = board[y1][x1]
-            board[y1][x1] = None
-            return True
-        else:
-            print("Error: Cannot capture own piece")
-            return False
+        return self.capture_move(board, from_pos, to_pos)
+
 
 
 class Pawn(Piece):
@@ -137,10 +139,6 @@ class King(Piece):
             if y1 == y2 and x1 == x2:
                 print("Error: King must move to a different square")
                 return False
-                
-            if board[y2][x2] is not None and board[y2][x2].color == self.color:
-                print("Error: Cannot capture own piece")
-                return False
             
             opponent_color = "black" if self.color == "white" else "white"
             for row in range(8):
@@ -154,10 +152,7 @@ class King(Piece):
                             print("Error: King cannot move adjacent to opponent's king")
                             return False
                         break 
-            
-            board[y2][x2] = board[y1][x1]
-            board[y1][x1] = None
-            return True
+            return self.capture_move(board, from_pos, to_pos)
         else:
             print("Error: King can only move 1 square in any direction")
             return False
@@ -186,14 +181,8 @@ class Bishop(Piece):
             y += step_y
             x += step_x
 
-        target = board[y2][x2]
-        if target is None or target.color != self.color:
-            board[y2][x2] = board[y1][x1]
-            board[y1][x1] = None
-            return True
-        else:
-            print("Error: Cannot capture own piece")
-            return False
+        return self.capture_move(board, from_pos, to_pos)
+
 
 
 class Queen(Piece):
@@ -230,14 +219,7 @@ class Queen(Piece):
             print("Error: Queen can only move horizontally, vertically, or diagonally")
             return False
 
-        target = board[y2][x2]
-        if target is None or target.color != self.color:
-            board[y2][x2] = board[y1][x1]
-            board[y1][x1] = None
-            return True
-        else:
-            print("Error: Cannot capture own piece")
-            return False
+        return self.capture_move(board, from_pos, to_pos)
 
 
 class Knight(Piece):
@@ -249,14 +231,7 @@ class Knight(Piece):
         y2, x2 = to_pos
 
         if (abs(x2 - x1) == 2 and abs(y2 - y1) == 1) or (abs(x2 - x1) == 1 and abs(y2 - y1) == 2):
-            target = board[y2][x2]
-            if target is None or target.color != self.color:
-                board[y2][x2] = board[y1][x1]
-                board[y1][x1] = None
-                return True
-            else:
-                print("Error: Cannot capture own piece")
-                return False
+            return self.capture_move(board, from_pos, to_pos)
         else:
             print("Error: Knight must move in L-shape (2+1 squares)")
             return False

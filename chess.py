@@ -56,6 +56,10 @@ class Board:
 
 
 class Rook(Piece):
+    def __init__(self, color):
+        super().__init__(color)
+        self.has_moved = False
+
     def symbol(self):
         return "wR" if self.color == "white" else "bR"
     
@@ -79,7 +83,11 @@ class Rook(Piece):
             print("Error: Rook must move horizontally or vertically")
             return False
         
-        return self.capture_move(board, from_pos, to_pos)
+        can_move = self.capture_move(board, from_pos, to_pos) #there are not any obstacles, so it can move
+        if can_move:
+            self.has_moved = True
+                
+        return can_move
 
 
 
@@ -128,9 +136,47 @@ class Pawn(Piece):
 
 
 class King(Piece):
+    def __init__(self, color):
+        super().__init__(color)
+        self.has_moved = False
+
     def symbol(self):
         return "wK" if self.color == "white" else "bK"
     
+    def castling(self, board, from_pos, to_pos):
+        y, x1 = from_pos
+        x2 = to_pos[1] # y is the same 
+
+        if x2 == x1 - 2: # queen side
+            rook_pos = (y, 0)
+            path = [(y, x1-1), (y, x1-2)]
+        else:
+            rook_pos = (y, 7)
+            path = [(y, x1+1), (y, x1+2)]
+
+        rook = board[rook_pos[0]][rook_pos[1]]
+        if not isinstance(rook, Rook) or rook.color != self.color or self.has_moved or rook.has_moved:
+            print("Error: Can not do castling")
+            return False
+
+        for cell in path:
+            if board[cell[0]][cell[1]] is not None:
+                print("Castling path is blocked")
+                return False
+            
+        board[y][x2] = self
+        board[y][x1] = None
+        if x2 < x1: # queen side
+            board[y][x2 + 1] = rook
+            board[rook_pos[0]][rook_pos[1]] = None
+        else: #king side
+            board[y][x2 - 1] = rook
+            board[rook_pos[0]][rook_pos[1]] = None
+
+        self.has_moved = True
+        rook.has_moved = True
+        return True
+
     def move(self, board, from_pos, to_pos):
         y1, x1 = from_pos
         y2, x2 = to_pos
@@ -152,7 +198,14 @@ class King(Piece):
                             print("Error: King cannot move adjacent to opponent's king")
                             return False
                         break 
-            return self.capture_move(board, from_pos, to_pos)
+
+            can_move = self.capture_move(board, from_pos, to_pos) #there are not any obstacles, so it can move
+            if can_move:
+                self.has_moved = True
+
+            return can_move
+        elif y1 == y2 and abs(x2 - x1) == 2:
+            return self.castling(board, from_pos, to_pos)
         else:
             print("Error: King can only move 1 square in any direction")
             return False
@@ -182,8 +235,6 @@ class Bishop(Piece):
             x += step_x
 
         return self.capture_move(board, from_pos, to_pos)
-
-
 
 class Queen(Piece):
     def symbol(self):

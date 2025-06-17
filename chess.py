@@ -21,13 +21,13 @@ class Board:
                 row.append(None)
             self.board.append(row)
     
-    def is_empty(self, x, y):
-        return self.board[x][y] is None
+    def is_empty(self, y, x):
+        return self.board[y][x] is None
     
     def setup(self):
         figures = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
 
-        for x, figure in enumerate(figures): # enumerate takes an array's element and its index
+        for x, figure in enumerate(figures):
             self.board[0][x] = figure("black")
             self.board[1][x] = Pawn("black")
 
@@ -44,9 +44,9 @@ class Board:
                     print("--", end=" ")
                 else:
                     print(piece.symbol(), end=" ")
-            print("\n")    
+            print()
         print("  a  b  c  d  e  f  g  h")
-     
+
 
 class Rook(Piece):
     def symbol(self):
@@ -56,27 +56,29 @@ class Rook(Piece):
         y1, x1 = from_pos
         y2, x2 = to_pos
 
-        # check if the path is clear
-        if x1 == x2: # vertical direction
+        if x1 == x2:  # Vertical 
             step = 1 if y1 < y2 else -1
-            for y in range(y1+step, y2, step):
+            for y in range(y1 + step, y2, step):
                 if board[y][x1] is not None:
-                    print("Error: path is blocked")
+                    print("Error: Path is blocked")
                     return False
-        elif y1 == y2: #horizontal direction
+        elif y1 == y2:  # Horizontal 
             step = 1 if x1 < x2 else -1
-            for x in range(x1+step, x2, step):
+            for x in range(x1 + step, x2, step):
                 if board[y1][x] is not None:
-                    print("Error: path is blocked")
+                    print("Error: Path is blocked")
                     return False
         else:
+            print("Error: Rook must move horizontally or vertically")
             return False
         
         if board[y2][x2] is None or board[y2][x2].color != self.color:
             board[y2][x2] = board[y1][x1]
             board[y1][x1] = None
             return True
-
+        else:
+            print("Error: Cannot capture own piece")
+            return False
 
 
 class Pawn(Piece):
@@ -89,16 +91,15 @@ class Pawn(Piece):
 
         step = -1 if self.color == "white" else 1  
 
-        # One step forward
         if x2 == x1 and y2 == y1 + step:
             if board[y2][x2] is None:
                 board[y2][x2] = board[y1][x1]
                 board[y1][x1] = None
                 return True
             else:
+                print("Error: Cannot move forward, square occupied")
                 return False
 
-        # Two steps forward 
         start_row = 6 if self.color == "white" else 1
         if x2 == x1 and y1 == start_row and y2 == y1 + 2*step:
             if board[y1 + step][x1] is None and board[y2][x2] is None:
@@ -106,6 +107,7 @@ class Pawn(Piece):
                 board[y1][x1] = None
                 return True
             else:
+                print("Error: Cannot move two squares, path blocked")
                 return False
 
         # Eat dioganally
@@ -116,11 +118,12 @@ class Pawn(Piece):
                 board[y1][x1] = None
                 return True
             else:
+                print("Error: Cannot capture - no enemy piece or square empty")
                 return False
 
         print("Error: Invalid pawn move")
         return False    
-    
+
 
 class King(Piece):
     def symbol(self):
@@ -129,17 +132,36 @@ class King(Piece):
     def move(self, board, from_pos, to_pos):
         y1, x1 = from_pos
         y2, x2 = to_pos
-
+        
         if abs(x2 - x1) <= 1 and abs(y2 - y1) <= 1:
-            if board[y2][x2] is None or board[y2][x2].color != self.color:
-                board[y2][x2] = board[y1][x1]
-                board[y1][x1] = None
-                return True
-            else:
+            if y1 == y2 and x1 == x2:
+                print("Error: King must move to a different square")
                 return False
+                
+            if board[y2][x2] is not None and board[y2][x2].color == self.color:
+                print("Error: Cannot capture own piece")
+                return False
+            
+            opponent_color = "black" if self.color == "white" else "white"
+            for row in range(8):
+                for col in range(8):
+                    piece = board[row][col]
+                    if (piece is not None and 
+                        isinstance(piece, King) and 
+                        piece.color == opponent_color):
+                        
+                        if abs(y2 - row) <= 1 and abs(x2 - col) <= 1:
+                            print("Error: King cannot move adjacent to opponent's king")
+                            return False
+                        break 
+            
+            board[y2][x2] = board[y1][x1]
+            board[y1][x1] = None
+            return True
         else:
             print("Error: King can only move 1 square in any direction")
             return False
+
 
 class Bishop(Piece):
     def symbol(self):
@@ -157,9 +179,9 @@ class Bishop(Piece):
         step_x = 1 if x2 > x1 else -1
 
         y, x = y1 + step_y, x1 + step_x
-        while y!= y2 and x != x2:
+        while y != y2 and x != x2:
             if board[y][x] is not None:
-                print("Error: path is blocked")
+                print("Error: Path is blocked")
                 return False
             y += step_y
             x += step_x
@@ -173,6 +195,7 @@ class Bishop(Piece):
             print("Error: Cannot capture own piece")
             return False
 
+
 class Queen(Piece):
     def symbol(self):
         return "wQ" if self.color == "white" else "bQ"
@@ -180,31 +203,31 @@ class Queen(Piece):
     def move(self, board, from_pos, to_pos):
         y1, x1 = from_pos
         y2, x2 = to_pos
-
-        if x1 == x2: # vertical 
+        
+        if x1 == x2: 
             step = 1 if y1 < y2 else -1
-            for y in range(y1+step, y2, step):
+            for y in range(y1 + step, y2, step):
                 if board[y][x1] is not None:
-                    print("Error: path is blocked")
+                    print("Error: Path is blocked")
                     return False
-        elif y1 == y2: #horizontal 
+        elif y1 == y2:  
             step = 1 if x1 < x2 else -1
-            for x in range(x1+step, x2, step):
+            for x in range(x1 + step, x2, step):
                 if board[y1][x] is not None:
-                    print("Error: path is blocked")
+                    print("Error: Path is blocked")
                     return False
-        elif abs(x2 - x1) == abs(y2 - y1):  # diagonal
+        elif abs(x2 - x1) == abs(y2 - y1): 
             step_y = 1 if y2 > y1 else -1
             step_x = 1 if x2 > x1 else -1
             y, x = y1 + step_y, x1 + step_x
             while y != y2 and x != x2:
                 if board[y][x] is not None:
-                    print("Error: path is blocked")
+                    print("Error: Path is blocked")
                     return False
                 y += step_y
                 x += step_x
         else:
-            print("Error: Queen moves only straight or diagonal")
+            print("Error: Queen can only move horizontally, vertically, or diagonally")
             return False
 
         target = board[y2][x2]
@@ -215,7 +238,6 @@ class Queen(Piece):
         else:
             print("Error: Cannot capture own piece")
             return False
-
 
 
 class Knight(Piece):
@@ -236,48 +258,80 @@ class Knight(Piece):
                 print("Error: Cannot capture own piece")
                 return False
         else:
-            print("Error: Invalid knight move")
+            print("Error: Knight must move in L-shape (2+1 squares)")
             return False
 
 
-
 def user_to_matrix(pos):
-    # a1 = (7, 0)
-    x, y = list(pos)
+    if len(pos) != 2:
+        return None
+    
+    x, y = list(pos.lower())
     letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-    return 8-int(y), letters.index(x)
+    
+    if x not in letters or y not in '12345678':
+        return None
+    
+    return 8 - int(y), letters.index(x)  
+
+
+def is_valid_position(pos):
+    if len(pos) != 2:
+        return False
+    x, y = pos.lower()
+    return x in 'abcdefgh' and y in '12345678'
+
 
 def main():
     board = Board()
     board.setup()
-    turn = "white"  # White starts
+    turn = "white" 
+
+    print("Welcome to Chess!")
+    print("Enter moves in chess notation (e.g., 'e2' to 'e4')")
+    print("Type 'quit' to exit the game\n")
 
     while True:
         board.show_board()
-        print(f"{turn.capitalize()}'s turn.")
+        print(f"\n{turn.capitalize()}'s turn.")
 
-        user_from = input("Enter figure's position e.g. a1 (or 'quit' to exit): ")
+        user_from = input("Enter piece position (e.g., e2): ").strip()
         if user_from.lower() == "quit":
+            print("Thanks for playing!")
             break
 
-        user_to = input("Enter where to move e.g. a5: ")
+        if not is_valid_position(user_from):
+            print("Invalid position format. Use format like 'e2'")
+            continue
+
+        user_to = input("Enter destination (e.g., e4): ").strip()
+        if not is_valid_position(user_to):
+            print("Invalid position format. Use format like 'e4'")
+            continue
 
         from_pos = user_to_matrix(user_from)
         to_pos = user_to_matrix(user_to)
 
         piece = board.board[from_pos[0]][from_pos[1]]
         if piece is None:
-            print("There is no piece at that position. Try again.")
+            print("No piece at that position. Try again.")
             continue
 
         if piece.color != turn:
             print(f"It's {turn}'s turn. You cannot move {piece.color}'s piece.")
             continue
 
-        moved = piece.move(board.board, from_pos, to_pos)
-        if moved:
+        if not (0 <= to_pos[0] < 8 and 0 <= to_pos[1] < 8):
+            print("Move is outside the board.")
+            continue
+
+        if piece.move(board.board, from_pos, to_pos):
             turn = "black" if turn == "white" else "white"
         else:
             print("Invalid move. Try again.")
 
-main()
+        print() 
+
+
+if __name__ == "__main__":
+    main()

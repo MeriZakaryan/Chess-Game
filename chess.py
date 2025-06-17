@@ -80,21 +80,41 @@ class CheckMate:
         return False
 
     def can_piece_attack(self, piece, king_pos):
-        for y in range(8):  # Iterate over all rows again
-            for x in range(8):  # Iterate over all columns
-                if piece and piece.color != self.board[king_pos[0]][king_pos[1]].color:
-                    # Save original pieces for undoing move later
-                    original_target = self.board[king_pos[0]][king_pos[1]]  # Piece at king's square
-                    original_piece = self.board[y][x]  # The attacking piece itself
-
+        for y in range(8):
+            for x in range(8):
+                if self.board[y][x] == piece:
+                    original_target = self.board[king_pos[0]][king_pos[1]]
                     if piece.move(self.board, (y, x), king_pos):
-                        # Undo the move to keep self.board unchanged
-                        self.board[y][x] = original_piece
+                        # Undo
+                        self.board[y][x] = piece
                         self.board[king_pos[0]][king_pos[1]] = original_target
-                        return True  # King is under attack (in check)
+                        return True
         return False
     
-    
+    def has_legal_moves(self, color):
+        # Check if the player with the given color has any legal moves available.
+        for y1 in range(8): 
+            for x1 in range(8):  
+                piece = self.board[y1][x1]  
+                if piece and piece.color == color:  
+                    for y2 in range(8): 
+                        for x2 in range(8):  
+                            original_target = self.board[y2][x2]
+                            original_piece = self.board[y1][x1]
+
+                            if piece.move(self.board, (y1, x1), (y2, x2)):
+                                # Check if after this move, the king is still safe (not in check)
+                                if not self.is_in_check(color):
+                                    self.board[y1][x1] = original_piece
+                                    self.board[y2][x2] = original_target
+                                    return True  
+                                
+                                # undo in any case
+                                self.board[y1][x1] = original_piece
+                                self.board[y2][x2] = original_target
+
+        return False
+
 
 class Rook(Piece):
     def __init__(self, color):
@@ -121,7 +141,6 @@ class Rook(Piece):
                     print("Error: Path is blocked")
                     return False
         else:
-            print("Error: Rook must move horizontally or vertically")
             return False
         
         can_move = self.capture_move(board, from_pos, to_pos) #there are not any obstacles, so it can move
@@ -148,7 +167,6 @@ class Pawn(Piece):
                 board[y1][x1] = None
                 return True
             else:
-                print("Error: Cannot move forward, square occupied")
                 return False
 
         start_row = 6 if self.color == "white" else 1
@@ -158,7 +176,6 @@ class Pawn(Piece):
                 board[y1][x1] = None
                 return True
             else:
-                print("Error: Cannot move two squares, path blocked")
                 return False
 
         # Eat dioganally
@@ -169,10 +186,8 @@ class Pawn(Piece):
                 board[y1][x1] = None
                 return True
             else:
-                print("Error: Cannot capture - no enemy piece or square empty")
                 return False
 
-        print("Error: Invalid pawn move")
         return False    
 
 
@@ -184,7 +199,7 @@ class King(Piece):
     def symbol(self):
         return "wK" if self.color == "white" else "bK"
     
-    def castling(self, board, from_pos, to_pos):
+    def castling(self, board, from_pos, to_pos, rules = None):
         y, x1 = from_pos
         x2 = to_pos[1] # y is the same 
 
@@ -200,6 +215,24 @@ class King(Piece):
             print("Error: Can not do castling")
             return False
 
+        if rules:
+            king_positions_test = [from_pos] + path  #current, through, destination
+            for pos in king_positions_test:
+                # simulate move
+                old_piece = board[pos[0]][pos[1]]
+                board[pos[0]][pos[1]] = self
+                board[from_pos[0]][from_pos[1]] = None
+
+                in_check = rules.is_in_check(self.color)
+
+                # undo simulation
+                board[from_pos[0]][from_pos[1]] = self
+                board[pos[0]][pos[1]] = old_piece
+
+                if in_check:
+                    print("Error: can't castle through or into check")
+                    return False
+        
         for cell in path:
             if board[cell[0]][cell[1]] is not None:
                 print("Castling path is blocked")
@@ -218,13 +251,12 @@ class King(Piece):
         rook.has_moved = True
         return True
 
-    def move(self, board, from_pos, to_pos):
+    def move(self, board, from_pos, to_pos, rules = None):
         y1, x1 = from_pos
         y2, x2 = to_pos
         
         if abs(x2 - x1) <= 1 and abs(y2 - y1) <= 1:
             if y1 == y2 and x1 == x2:
-                print("Error: King must move to a different square")
                 return False
             
             opponent_color = "black" if self.color == "white" else "white"
@@ -236,7 +268,6 @@ class King(Piece):
                         piece.color == opponent_color):
                         
                         if abs(y2 - row) <= 1 and abs(x2 - col) <= 1:
-                            print("Error: King cannot move adjacent to opponent's king")
                             return False
                         break 
 
@@ -246,9 +277,8 @@ class King(Piece):
 
             return can_move
         elif y1 == y2 and abs(x2 - x1) == 2:
-            return self.castling(board, from_pos, to_pos)
+            return self.castling(board, from_pos, to_pos, rules = rules)
         else:
-            print("Error: King can only move 1 square in any direction")
             return False
 
 
@@ -261,7 +291,6 @@ class Bishop(Piece):
         y2, x2 = to_pos
 
         if abs(x2 - x1) != abs(y2 - y1):
-            print("Error: Bishop must move diagonally")
             return False
 
         step_y = 1 if y2 > y1 else -1
@@ -270,7 +299,6 @@ class Bishop(Piece):
         y, x = y1 + step_y, x1 + step_x
         while y != y2 and x != x2:
             if board[y][x] is not None:
-                print("Error: Path is blocked")
                 return False
             y += step_y
             x += step_x
@@ -308,7 +336,6 @@ class Queen(Piece):
                 y += step_y
                 x += step_x
         else:
-            print("Error: Queen can only move horizontally, vertically, or diagonally")
             return False
 
         return self.capture_move(board, from_pos, to_pos)
@@ -325,7 +352,6 @@ class Knight(Piece):
         if (abs(x2 - x1) == 2 and abs(y2 - y1) == 1) or (abs(x2 - x1) == 1 and abs(y2 - y1) == 2):
             return self.capture_move(board, from_pos, to_pos)
         else:
-            print("Error: Knight must move in L-shape (2+1 squares)")
             return False
 
 
@@ -357,14 +383,14 @@ def main():
 
     print("Welcome to Chess!")
     print("Enter moves in chess notation (e.g., 'e2' to 'e4')")
-    print("Type 'quit' to exit the game\n")
+    print("Type 'q' (quit) to exit the game\n")
 
     while True:
         board.show_board()
         print(f"\n{turn.capitalize()}'s turn.")
 
         user_from = input("Enter piece position (e.g., e2): ").strip()
-        if user_from.lower() == "quit":
+        if user_from.lower() == "q":
             print("Thanks for playing!")
             break
 
@@ -397,6 +423,12 @@ def main():
             turn = "black" if turn == "white" else "white"
             if rules.is_in_check(turn):
                 print(f"Warning! {turn.capitalize()} is in check!")
+                rival = "black" if turn=="white" else "white"
+                if rules.is_in_check(rival) and not rules.has_legal_moves(rival):
+                    board.show_board()
+                    print(f"Checkmate! {turn.capitalize()} wins.")
+                    break
+                turn = rival
         else:
             print("Invalid move. Try again.")
 
